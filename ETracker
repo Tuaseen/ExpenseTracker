@@ -83,18 +83,30 @@ class ExpenseTracker:
         tk.Button(frame_buttons, text="Clear Entries", command=self.clear_entries).grid(row=0, column=3, padx=5, pady=5)
     
     def create_expense_table(self):
-        # Expense Table
+        # Create a frame to hold the table and scrollbar
+        frame_table = tk.Frame(self.root)
+        frame_table.grid(row=2, column=0, padx=10, pady=10)
+        
+        # Create the Treeview (Table)
         columns = ("ID", "Date", "Category", "Amount", "Description")
-        self.table = ttk.Treeview(self.root, columns=columns, show="headings", height=6)
-    
+        self.table = ttk.Treeview(frame_table, columns=columns, show="headings", height=6)
+        
+        # Define Column Headings and Widths
         for col in columns:
             self.table.heading(col, text=col)
             self.table.column(col, width=120)
         
-        self.table.grid(row=2, column=0, padx=10, pady=10)
-    
-        # Bind selection
+        # Create a Vertical Scrollbar
+        scrollbar = ttk.Scrollbar(frame_table, orient="vertical", command=self.table.yview)
+        self.table.configure(yscrollcommand=scrollbar.set)
+        
+        # Place Table and Scrollbar
+        self.table.grid(row=0, column=0)
+        scrollbar.grid(row=0, column=1, sticky="ns")  # "ns" makes it stretch vertically
+        
+        # Bind Selection Event
         self.table.bind("<<TreeviewSelect>>", self.on_selection)
+
 
     
     def create_category_analysis(self):
