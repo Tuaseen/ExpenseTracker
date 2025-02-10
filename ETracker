@@ -1,304 +1,304 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ttkthemes import ThemedTk
 import sqlite3
+
 
 class ExpenseTracker:
     def __init__(self, root):
         self.root = root
         self.root.title("Expense Tracker")
-        self.root.geometry("800x700")
-        self.root.configure(padx=20, pady=20)
-        
+        self.root.geometry("950x580")  # Adjusted size for better layout
+        self.root.configure(bg="#f0f0f0", padx=20, pady=20)
+
+        # Apply a modern theme
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TLabel", font=("Helvetica", 12), background="#f0f0f0")
+        style.configure("TButton", font=("Helvetica", 10, "bold"), background="#4CAF50", foreground="white")
+        style.configure("Treeview", font=("Helvetica", 10), rowheight=25)
+
+        # Title Label
+        title_label = tk.Label(self.root, text="Expense Tracker", font=("Helvetica", 20, "bold"), bg="#4CAF50", fg="white", pady=10)
+        title_label.grid(row=0, column=0, columnspan=2, sticky="ew")
+
         # Connect to the database
         self.conn = sqlite3.connect("expenses.db")
         self.create_database()
-        
+
         # Categories
         self.categories = ["Food", "Transport", "Entertainment", "Bills", "Shopping", "Other"]
         self.category_var = tk.StringVar(value="Food")
-        
-        # Input Frame
-        self.create_input_frame()
-        
-        # Buttons
-        self.create_buttons()
-        
+
         # Expense Table
         self.create_expense_table()
-        
-        # Category Analysis
-        self.create_category_analysis()
-        
-        # Monthly Summary
-        self.create_monthly_summary()
-        
+
+        # Input Fields and Buttons (Right Side)
+        self.create_input_and_buttons_frame()
+
+        # Monthly Summary and Category Analysis Section
+        self.create_summary_and_analysis_frame()
+
         # Display initial expenses
         self.view_expenses()
-    
+
     def create_database(self):
         cursor = self.conn.cursor()
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS expenses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                category TEXT NOT NULL,
-                amount REAL NOT NULL,
-                description TEXT
-            )
+        CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT
+        )
         ''')
         self.conn.commit()
-    
-    def create_input_frame(self):
-        frame_input = tk.Frame(self.root)
-        frame_input.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        
-        # Date Entry
-        tk.Label(frame_input, text="Date (YYYY-MM-DD):").grid(row=0, column=0, sticky="w", padx=5)
-        self.entry_date = tk.Entry(frame_input, width=20)
-        self.entry_date.grid(row=0, column=1, padx=5)
-        
-        # Category Entry
-        tk.Label(frame_input, text="Category:").grid(row=1, column=0, sticky="w", padx=5)
-        self.entry_category = ttk.Combobox(frame_input, textvariable=self.category_var, values=self.categories, width=18)
-        self.entry_category.grid(row=1, column=1, padx=5)
-        
-        # Amount Entry
-        tk.Label(frame_input, text="Amount:").grid(row=2, column=0, sticky="w", padx=5)
-        self.entry_amount = tk.Entry(frame_input, width=20)
-        self.entry_amount.grid(row=2, column=1, padx=5)
-        
-        # Description Entry
-        tk.Label(frame_input, text="Description:").grid(row=3, column=0, sticky="w", padx=5)
-        self.entry_description = tk.Entry(frame_input, width=20)
-        self.entry_description.grid(row=3, column=1, padx=5)
-    
-    def create_buttons(self):
-        frame_buttons = tk.Frame(self.root)
-        frame_buttons.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-        
-        # Action Buttons
-        tk.Button(frame_buttons, text="Add Expense", command=self.add_expense).grid(row=0, column=0, padx=5, pady=5)
-        tk.Button(frame_buttons, text="Update Expense", command=self.update_expense).grid(row=0, column=1, padx=5, pady=5)
-        tk.Button(frame_buttons, text="Delete Expense", command=self.delete_expense).grid(row=0, column=2, padx=5, pady=5)
-        tk.Button(frame_buttons, text="Clear Entries", command=self.clear_entries).grid(row=0, column=3, padx=5, pady=5)
-    
+
     def create_expense_table(self):
         # Create a frame to hold the table and scrollbar
         frame_table = tk.Frame(self.root)
-        frame_table.grid(row=2, column=0, padx=10, pady=10)
-        
+        frame_table.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+
         # Create the Treeview (Table)
         columns = ("ID", "Date", "Category", "Amount", "Description")
-        self.table = ttk.Treeview(frame_table, columns=columns, show="headings", height=6)
-        
+        self.table = ttk.Treeview(frame_table, columns=columns, show="headings", height=8)  # Reduced height to 8 rows
+
         # Define Column Headings and Widths
         for col in columns:
             self.table.heading(col, text=col)
             self.table.column(col, width=120)
-        
+
         # Create a Vertical Scrollbar
         scrollbar = ttk.Scrollbar(frame_table, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scrollbar.set)
-        
+
         # Place Table and Scrollbar
-        self.table.grid(row=0, column=0)
+        self.table.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")  # "ns" makes it stretch vertically
-        
+
         # Bind Selection Event
         self.table.bind("<<TreeviewSelect>>", self.on_selection)
 
+    def create_input_and_buttons_frame(self):
+        # Create a single frame for both input fields and buttons
+        self.frame_input_and_buttons = tk.Frame(self.root, bg="#f0f0f0")
+        self.frame_input_and_buttons.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
 
-    
-    def create_category_analysis(self):
-        # Category Analysis Button
-        tk.Button(self.root, text="Generate Category Analysis", command=self.category_analysis).grid(row=3, column=0, pady=10)
-        
-        # Category Analysis Table
-        self.category_table = ttk.Treeview(self.root, columns=("Category", "Total Amount"), show="headings", height=5)
-        self.category_table.grid(row=4, column=0, pady=10)
-        
-        for col in ("Category", "Total Amount"):
-            self.category_table.heading(col, text=col)
-            self.category_table.column(col, width=150)
-    
-    def create_monthly_summary(self):
-        frame_summary = tk.Frame(self.root)
-        frame_summary.grid(row=5, column=0, pady=5, sticky="w")
-    
+        # Input Fields
+        self.create_input_fields()
+
+        # Buttons
+        self.create_buttons()
+
+    def create_input_fields(self):
+        frame_input = tk.Frame(self.frame_input_and_buttons, bg="#f0f0f0")
+        frame_input.pack(pady=10, fill="x")
+
+        # Date Entry
+        tk.Label(frame_input, text="Date (YYYY-MM-DD):", bg="#f0f0f0").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        self.entry_date = tk.Entry(frame_input, width=20)
+        self.entry_date.grid(row=0, column=1, padx=10, pady=5)
+
+        # Category Entry
+        tk.Label(frame_input, text="Category:", bg="#f0f0f0").grid(row=1, column=0, sticky="w", padx=10, pady=5)
+        self.entry_category = ttk.Combobox(frame_input, textvariable=self.category_var, values=self.categories, width=18)
+        self.entry_category.grid(row=1, column=1, padx=10, pady=5)
+
+        # Amount Entry
+        tk.Label(frame_input, text="Amount:", bg="#f0f0f0").grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        self.entry_amount = tk.Entry(frame_input, width=20)
+        self.entry_amount.grid(row=2, column=1, padx=10, pady=5)
+
+        # Description Entry
+        tk.Label(frame_input, text="Description:", bg="#f0f0f0").grid(row=3, column=0, sticky="w", padx=10, pady=5)
+        self.entry_description = tk.Entry(frame_input, width=20)
+        self.entry_description.grid(row=3, column=1, padx=10, pady=5)
+
+    def create_buttons(self):
+        frame_buttons = tk.Frame(self.frame_input_and_buttons, bg="#f0f0f0")
+        frame_buttons.pack(pady=10)
+
+        # Add Expense Button
+        tk.Button(frame_buttons, text="Add Expense", command=self.add_expense, width=15).grid(row=0, column=0, padx=5, pady=5)
+
+        # Update Expense Button
+        tk.Button(frame_buttons, text="Update Expense", command=self.update_expense, width=15).grid(row=0, column=1, padx=5, pady=5)
+
+        # Delete Expense Button
+        tk.Button(frame_buttons, text="Delete Expense", command=self.delete_expense, width=15).grid(row=1, column=0, padx=5, pady=5)
+
+        # Clear Entries Button
+        tk.Button(frame_buttons, text="Clear Entries", command=self.clear_entries, width=15).grid(row=1, column=1, padx=5, pady=5)
+
+    def create_summary_and_analysis_frame(self):
+        # Frame for Monthly Summary and Category Analysis
+        frame_summary_and_analysis = tk.Frame(self.root, bg="#f0f0f0")
+        frame_summary_and_analysis.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+
+        # Monthly Summary Section
+        self.create_monthly_summary_section(frame_summary_and_analysis)
+
+        # Category Analysis Section
+        self.create_category_analysis_section(frame_summary_and_analysis)
+
+    def create_monthly_summary_section(self, parent_frame):
         # Monthly Summary Label & Entry
-        tk.Label(frame_summary, text="Enter Month (YYYY-MM):").grid(row=0, column=0, pady=5, padx=5)
+        frame_summary = tk.Frame(parent_frame, bg="#f0f0f0")
+        frame_summary.grid(row=0, column=0, pady=5, sticky="w")
+        tk.Label(frame_summary, text="Enter Month (YYYY-MM):", bg="#f0f0f0").grid(row=0, column=0, pady=5, padx=5)
         self.entry_month = tk.Entry(frame_summary, width=10)
         self.entry_month.grid(row=0, column=1, pady=5, padx=5)
-    
-        # Monthly Summary Button (Aligned to the Right)
-        tk.Button(frame_summary, text="Generate Monthly Summary", command=self.monthly_summary).grid(row=0, column=2, padx=10, sticky="e")
-    
+
+        # Generate Button
+        tk.Button(frame_summary, text="Generate Summary", command=self.generate_summary).grid(row=0, column=2, padx=10, sticky="e")
+
         # Monthly Summary Table
-        self.summary_table = ttk.Treeview(self.root, columns=("Category", "Total Amount"), show="headings", height=5)
-        self.summary_table.grid(row=6, column=0, pady=10)
-    
+        self.summary_table = ttk.Treeview(parent_frame, columns=("Category", "Total Amount"), show="headings", height=6)
+        self.summary_table.grid(row=1, column=0, padx=10, pady=10)
+
         for col in ("Category", "Total Amount"):
             self.summary_table.heading(col, text=col)
             self.summary_table.column(col, width=150)
 
-    
+    def create_category_analysis_section(self, parent_frame):
+        # Category Analysis Button
+        tk.Button(parent_frame, text="Category Analysis", command=self.populate_category_analysis, width=20).grid(row=0, column=1, padx=10, pady=5)
+
+        # Category Analysis Table
+        self.category_table = ttk.Treeview(parent_frame, columns=("Category", "Total Amount"), show="headings", height=6)
+        self.category_table.grid(row=1, column=1, padx=10, pady=10)
+
+        for col in ("Category", "Total Amount"):
+            self.category_table.heading(col, text=col)
+            self.category_table.column(col, width=150)
+
+    def populate_category_analysis(self):
+        # Clear existing data in the category analysis table
+        self.category_table.delete(*self.category_table.get_children())
+
+        # Fetch and display data
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT category, SUM(amount) FROM expenses GROUP BY category")
+        rows = cursor.fetchall()
+        for row in rows:
+            self.category_table.insert("", "end", values=row)
+
+    def generate_summary(self):
+        month = self.entry_month.get().strip()
+        if not month:
+            messagebox.showerror("Error", "Enter a valid month in format YYYY-MM!")
+            return
+
+        self.summary_table.delete(*self.summary_table.get_children())
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT category, SUM(amount) FROM expenses WHERE date LIKE ? GROUP BY category", (month + "%",))
+        rows = cursor.fetchall()
+        for row in rows:
+            self.summary_table.insert("", "end", values=row)
+
     def add_expense(self):
         date = self.entry_date.get()
         category = self.category_var.get()
         amount = self.entry_amount.get()
         description = self.entry_description.get()
-    
+
         if not date or not amount:
             messagebox.showerror("Error", "Date and Amount are required fields!")
             return
-    
+
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
-                INSERT INTO expenses (date, category, amount, description)
-                VALUES (?, ?, ?, ?)
+            INSERT INTO expenses (date, category, amount, description)
+            VALUES (?, ?, ?, ?)
             ''', (date, category, amount, description))
             self.conn.commit()
-    
             self.view_expenses()
             self.clear_entries()
             messagebox.showinfo("Success", "Expense added successfully!")
-    
         except Exception as e:
             messagebox.showerror("Error", f"Error adding expense: {e}")
 
-    
     def update_expense(self):
         selected_item = self.table.selection()
         if not selected_item:
             messagebox.showerror("Error", "No expense selected to update!")
             return
-    
+
         date = self.entry_date.get()
         category = self.category_var.get()
         amount = self.entry_amount.get()
         description = self.entry_description.get()
-    
+
         if not date or not amount:
             messagebox.showerror("Error", "Date and Amount are required fields!")
             return
-    
+
         try:
             item_id = self.table.item(selected_item, "values")[0]  # Get the ID of the selected item
-    
-            # Correct field mapping in the UPDATE query
             cursor = self.conn.cursor()
             cursor.execute('''
-                UPDATE expenses
-                SET date = ?, category = ?, amount = ?, description = ?
-                WHERE id = ?
+            UPDATE expenses
+            SET date = ?, category = ?, amount = ?, description = ?
+            WHERE id = ?
             ''', (date, category, amount, description, item_id))
             self.conn.commit()
-    
-            # Update Treeview
             self.view_expenses()
-    
-            # Clear entries after updating
             self.clear_entries()
             messagebox.showinfo("Success", "Expense updated successfully!")
-    
         except Exception as e:
             messagebox.showerror("Error", f"Error updating expense: {e}")
 
-
-    
     def delete_expense(self):
         selected_item = self.table.selection()
         if not selected_item:
             messagebox.showerror("Error", "No expense selected to delete!")
             return
-        
+
         try:
             item_id = self.table.item(selected_item, "values")[0]  # Get the ID of the selected item
-    
             cursor = self.conn.cursor()
             cursor.execute("DELETE FROM expenses WHERE id = ?", (item_id,))
             self.conn.commit()
-    
             self.view_expenses()
             messagebox.showinfo("Success", "Expense deleted successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Error deleting expense: {e}")
 
-
     def view_expenses(self):
         for row in self.table.get_children():
             self.table.delete(row)
-        
+
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM expenses")
         rows = cursor.fetchall()
-    
-        # Debugging: Print retrieved rows
-        print("Database Records:", rows)
-    
         for row in rows:
-            self.table.insert("", "end", values=(row[0], row[1], row[2], row[3], row[4]))  # Ensure correct order
-
-
+            self.table.insert("", "end", values=(row[0], row[1], row[2], row[3], row[4]))
 
     def clear_entries(self):
         self.entry_date.delete(0, tk.END)
         self.entry_amount.delete(0, tk.END)
         self.entry_description.delete(0, tk.END)
-    
-    def category_analysis(self):
-        self.category_table.delete(*self.category_table.get_children())
-        
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT category, SUM(amount) FROM expenses GROUP BY category")
-        rows = cursor.fetchall()
-        
-        for row in rows:
-            self.category_table.insert("", "end", values=row)
-
-    def monthly_summary(self):
-        month = self.entry_month.get().strip()
-        if not month:
-            messagebox.showerror("Error", "Enter a valid month in format YYYY-MM!")
-            return
-        
-        self.summary_table.delete(*self.summary_table.get_children())
-        
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT category, SUM(amount) FROM expenses WHERE date LIKE ? GROUP BY category", (month + "%",))
-        rows = cursor.fetchall()
-        
-        for row in rows:
-            self.summary_table.insert("", "end", values=row)
 
     def on_selection(self, event):
         try:
             selected_item = self.table.selection()
             if not selected_item:
                 return
-    
             row = self.table.item(selected_item, "values")
-    
-            # Debugging: Print values to check order
-            print("Selected Row:", row)
-    
             self.entry_date.delete(0, tk.END)
-            self.entry_date.insert(0, row[1])  # Date (Correct)
-    
-            self.category_var.set(row[2])  # Category (Correct)
-    
+            self.entry_date.insert(0, row[1])  # Date
+            self.category_var.set(row[2])  # Category
             self.entry_amount.delete(0, tk.END)
-            self.entry_amount.insert(0, row[3])  # Amount (Correct)
-    
+            self.entry_amount.insert(0, row[3])  # Amount
             self.entry_description.delete(0, tk.END)
-            self.entry_description.insert(0, row[4])  # Description (Correct)
-    
+            self.entry_description.insert(0, row[4])  # Description
         except Exception as e:
             print("Error in on_selection:", e)
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ThemedTk(theme="arc")
     app = ExpenseTracker(root)
-    root.mainloop()  
+    root.mainloop()
